@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+ <!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Kegiatan Praktikum di Laboratorium Jalan Raya</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Konfigurasi Font Inter -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+        #notification-area {
+            max-width: 90%; 
+        }
+
+        /* Jadikan header tanggal sticky saat scrolling */
+        #schedule-list h3 {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: white; /* Pastikan background putih agar konten di bawahnya tidak bocor */
+            padding-top: 10px;
+            padding-bottom: 5px;
+            margin-top: 0 !important; /* Hilangkan margin atas bawaan dari mt-6 Tailwind */
+        }
+        
+        /* CSS untuk Pengaturan Cetak (Print Styles) - Masih dipertahankan sebagai fallback */
+        @media print {
+            /* Sembunyikan semua elemen non-esensial saat dicetak */
+            #add-form-container, 
+            #user-status,
+            .delete-btn,
+            #pdf-button-container {
+                display: none !important;
+            }
+            header {
+                box-shadow: none !important; /* Hapus bayangan */
+            }
+            /* Styling untuk daftar jadwal agar terlihat bagus di kertas */
+            #schedule-list div {
+                border: 1px solid #ccc !important;
+                margin-bottom: 1rem;
+                padding: 1rem !important;
+                page-break-inside: avoid; /* Hindari pemisahan item di tengah halaman */
+            }
+            /* Set background putih untuk semua elemen saat dicetak */
+            body, .container, #schedule-list, #schedule-list div {
+                background-color: white !important;
+            }
+            /* Pastikan header tanggal juga dicetak dengan baik */
+            #schedule-list h3 {
+                border-bottom: 1px solid #000 !important;
+                margin-top: 1.5rem !important;
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="mb-8 p-4 bg-white shadow-xl rounded-xl">
+            <h1 class="text-3xl font-extrabold text-indigo-700 mb-2 sm:text-4xl">Jadwal Praktikum di Laboratorium Jalan Raya</h1>
+            <p class="text-sm text-gray-500">Aplikasi pengelolaan jadwal kegiatan praktikum berbasis Real-time (Cloud).</p>
+            <p id="user-status" class="mt-2 text-xs text-gray-500">Status ID Pengguna:</p>
+        </header>
+
+        <!-- Tombol PDF/Cetak -->
+        <div id="pdf-button-container" class="mb-6 flex justify-end">
+            <button id="print-pdf-button" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl shadow-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Unduh PDF (Format Khusus)
+            </button>
+        </div>
+
+        <!-- Form Tambah Kegiatan -->
+        <div id="add-form-container" class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Tambah Jadwal Praktikum</h2>
+            <form id="schedule-form" class="space-y-4">
+                <!-- Nama Modul Praktikum -->
+                <div>
+                    <label for="module_name" class="block text-sm font-medium text-gray-700">Nama Modul Praktikum</label>
+                    <input type="text" id="module_name" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                </div>
+                
+                <!-- Kelompok -->
+                <div>
+                    <label for="group" class="block text-sm font-medium text-gray-700">Kelompok</label>
+                    <input type="text" id="group" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" placeholder="Contoh: A-1 atau Kelompok 3">
+                </div>
+
+                <!-- Asisten Praktikum -->
+                <div>
+                    <label for="assistant" class="block text-sm font-medium text-gray-700">Asisten Praktikum</label>
+                    <input type="text" id="assistant" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" placeholder="Nama Asisten">
+                </div>
+
+                <!-- Tanggal, Waktu, Lokasi: Grid ini otomatis menjadi 1 kolom di HP -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Tanggal</label>
+                        <input type="date" id="date" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="time" class="block text-sm font-medium text-gray-700">Waktu Mulai (HH:MM)</label>
+                        <input type="text" id="time" required pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" placeholder="HH:MM (Contoh: 14:30)" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700">Lokasi/Lab</label>
+                        <input type="text" id="location" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="Lab Jalan Raya" readonly>
+                    </div>
+                </div>
+                <button type="submit" id="submit-button" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Tambahkan Jadwal
+                </button>
+            </form>
+        </div>
+
+        <!-- Daftar Kegiatan -->
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Daftar Jadwal Praktikum</h2>
+            <div id="schedule-list" class="space-y-4">
+                <p id="loading-message" class="text-center text-gray-500">Memuat data dari Cloud...</p>
+                <!-- Jadwal akan dirender di sini, dikelompokkan per tanggal -->
+            </div>
+            <p id="no-schedule-message" class="text-center text-gray-500 hidden mt-4">Tidak ada jadwal praktikum yang tercatat.</p>
+        </div>
+    </div>
+
+    <!-- Modals dan Notifikasi -->
+    <div id="notification-area" class="fixed bottom-4 right-4 z-50 space-y-2">
+        <!-- Notifikasi akan muncul di sini -->
+    </div>
+    
+    <!-- Pustaka jsPDF untuk Pembuatan PDF Khusus -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot, 
+            query, 
+            deleteDoc, 
+            doc 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Aktifkan logging debug untuk Firebase di Console
+        setLogLevel('debug');
+        
+        // --- Konfigurasi dan Inisialisasi Global ---
+        
+        // =================================================================
+        // KONFIGURASI PROYEK FIREBASE ANDA
+        // =================================================================
+        const YOUR_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyAEnlKo65XoDotisQVclEmwvJcuabJ94aU", 
+            authDomain: "jadwal-praktikum-9637c.firebaseapp.com",
+            projectId: "jadwal-praktikum-9637c",
+            storageBucket: "jadwal-praktikum-9637c.firebasestorage.app",
+            messagingSenderId: "651582404486",
+            appId: "1:651582404486:web:378594d51bc1ad0ce25e07",
+            measurementId: "G-GMT6LNGKQS"
+        };
+        // =================================================================
+        
+        
+        // Variabel yang disuntikkan di lingkungan Canvas (fallback jika tidak ada)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'praktikum-schedule-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : YOUR_FIREBASE_CONFIG;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId = null;
+        let isAuthReady = false;
+        let currentSchedules = []; // Global state untuk data yang siap di-PDFkan
+
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        const scheduleList = document.getElementById('schedule-list');
+        const form = document.getElementById('schedule-form');
+        const loadingMessage = document.getElementById('loading-message');
+        const noScheduleMessage = document.getElementById('no-schedule-message');
+        const userStatusElement = document.getElementById('user-status');
+        const notificationArea = document.getElementById('notification-area');
+        const printPdfButton = document.getElementById('print-pdf-button');
+
+        // --- Event Listener untuk Cetak/PDF (Sekarang memanggil fungsi kustom) ---
+        printPdfButton.addEventListener('click', generateCustomPDF);
+        
+        /**
+         * Menampilkan notifikasi sementara.
+         */
+        function showNotification(message, type = 'success') {
+            const color = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? '✔' : '❌';
+            
+            const notification = document.createElement('div');
+            notification.className = `${color} text-white px-4 py-2 rounded-lg shadow-xl text-sm transition-all duration-300 transform translate-x-full opacity-0`;
+            notification.innerHTML = `<span class="font-bold mr-2">${icon}</span>${message}`;
+
+            notificationArea.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                notification.classList.add('translate-x-full', 'opacity-0');
+                notification.addEventListener('transitionend', () => notification.remove());
+            }, 5000);
+        }
+
+        /**
+         * Mengautentikasi pengguna menggunakan token kustom atau anonim.
+         */
+        async function authenticateUser() {
+            try {
+                // Gunakan token kustom jika ada (di lingkungan Canvas), jika tidak, gunakan sign-in anonim.
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication Error:", error);
+                showNotification(`Gagal Autentikasi: ${error.message}. Pastikan Autentikasi Anonim sudah aktif (Langkah 2)!`, 'error');
+            }
+        }
+
+        /**
+         * Mendengarkan dan merender jadwal secara real-time dari Firestore.
+         */
+        function setupRealtimeListener() {
+            if (!isAuthReady || !userId) return;
+
+            // Path: /artifacts/{appId}/users/{userId}/practicum_schedule
+            // Ini adalah path data PRIVATE Anda
+            const scheduleCollectionPath = `artifacts/${appId}/users/${userId}/practicum_schedule`;
+            const colRef = collection(db, scheduleCollectionPath);
+            
+            // Menampilkan status pengguna
+            userStatusElement.textContent = `Status ID Pengguna: Aktif (${userId})`;
+            
+            onSnapshot(colRef, (snapshot) => {
+                let schedules = [];
+                snapshot.forEach((doc) => {
+                    schedules.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sortir di sisi klien (wajib karena keterbatasan orderBy Firestore)
+                schedules.sort((a, b) => {
+                    const dateA = new Date(`${a.date}T${a.time}`);
+                    const dateB = new Date(`${b.date}T${b.time}`);
+                    return dateA - dateB;
+                });
+                
+                // Simpan jadwal yang sudah disortir ke state global untuk PDF
+                currentSchedules = schedules; 
+
+                renderSchedule(schedules);
+            }, (error) => {
+                console.error("Error fetching schedules:", error);
+                // Pesan error paling umum: permission-denied (Aturan Keamanan Salah)
+                if (error.code === 'permission-denied') {
+                    showNotification('GAGAL MEMUAT: Izin ditolak. Cek Aturan Keamanan Firestore Anda (Langkah 3)!', 'error');
+                } else {
+                    showNotification(`Gagal memuat jadwal: ${error.message}`, 'error');
+                }
+                loadingMessage.classList.add('hidden');
+            });
+        }
+        
+        /**
+         * Menghasilkan dokumen PDF yang diformat khusus menggunakan jsPDF + AutoTable.
+         */
+        async function generateCustomPDF() {
+            if (currentSchedules.length === 0) {
+                showNotification('Tidak ada jadwal untuk diunduh.', 'error');
+                return;
+            }
+
+            const originalButtonText = printPdfButton.innerHTML;
+            printPdfButton.disabled = true;
+            printPdfButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Membuat PDF...
+            `;
+            
+            try {
+                // Mengambil jsPDF dari window (karena dimuat via CDN)
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                let y = 20;
+
+                // --- Header Dokumen ---
+                doc.setFontSize(16);
+                doc.setTextColor(30, 58, 138); // Indigo-800
+                doc.text("Jadwal Praktikum di Laboratorium Jalan Raya", 105, y, null, null, "center");
+                y += 8;
+                doc.setFontSize(10);
+                doc.setTextColor(107, 114, 128); // Gray-500
+                doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID')}`, 105, y, null, null, "center");
+                y += 10;
+                doc.line(10, y, 200, y);
+                y += 5;
+
+                // --- Isi Tabel (Menggunakan AutoTable untuk format rapi) ---
+                const headers = ["No", "Modul Praktikum", "Kelompok", "Asisten", "Tanggal", "Waktu", "Lokasi"];
+                const data = currentSchedules.map((item, index) => {
+                    // Konversi tanggal ke format dd/mm/yyyy
+                    const dateDisplay = new Date(`${item.date}T${item.time}`).toLocaleDateString('id-ID', {
+                        day: '2-digit', month: '2-digit', year: 'numeric'
+                    });
+                    return [
+                        (index + 1).toString(),
+                        item.module_name,
+                        item.group || '-',
+                        item.assistant || '-',
+                        dateDisplay,
+                        item.time + ' WIB',
+                        item.location
+                    ];
+                });
+
+                doc.autoTable({
+                    head: [headers],
+                    body: data,
+                    startY: y,
+                    theme: 'grid',
+                    styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                    headStyles: { fillColor: [55, 65, 81], textColor: 255, fontStyle: 'bold' }, // Tailwind gray-700
+                    alternateRowStyles: { fillColor: [243, 244, 246] }, // Tailwind gray-100
+                    margin: { top: 10, left: 10, right: 10, bottom: 10 },
+                    didDrawPage: (data) => {
+                        // Footer
+                        doc.setFontSize(8);
+                        doc.setTextColor(150);
+                        doc.text('Data diambil dari Firebase Cloud (Private Collection)', data.settings.margin.left, doc.internal.pageSize.height - 10);
+                        doc.text('Halaman ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.width - data.settings.margin.right, doc.internal.pageSize.height - 10);
+                    }
+                });
+                
+                // Simpan/Unduh PDF
+                doc.save('Jadwal_Praktikum.pdf');
+                showNotification('File PDF Jadwal Praktikum berhasil diunduh.', 'success');
+
+            } catch (error) {
+                console.error("Error generating PDF: ", error);
+                showNotification('Gagal membuat PDF. Coba gunakan fitur "Cetak" browser (sebagai fallback).', 'error');
+            } finally {
+                printPdfButton.disabled = false;
+                printPdfButton.innerHTML = originalButtonText;
+            }
+        }
+        
+        /**
+         * Merender daftar jadwal ke DOM, dikelompokkan per tanggal.
+         */
+        function renderSchedule(schedules) {
+            loadingMessage.classList.add('hidden');
+            scheduleList.innerHTML = ''; 
+
+            if (schedules.length === 0) {
+                noScheduleMessage.classList.remove('hidden');
+                return;
+            }
+
+            noScheduleMessage.classList.add('hidden');
+            
+            // 1. KELOMPOKKAN JADWAL BERDASARKAN TANGGAL
+            const groupedSchedules = schedules.reduce((acc, item) => {
+                const dateKey = item.date; // Format "yyyy-mm-dd"
+                if (!acc[dateKey]) {
+                    acc[dateKey] = [];
+                }
+                acc[dateKey].push(item);
+                return acc;
+            }, {});
+
+            // 2. ITERASI MELALUI TANGGAL-TANGGAL YANG ADA (Sudah terurut karena input schedules terurut)
+            Object.keys(groupedSchedules).forEach(dateKey => {
+                // Format Tanggal untuk Tampilan Header (e.g., "Selasa, 3 Desember 2025")
+                // Tambahkan 'T00:00:00' agar Date object menganggapnya sebagai waktu lokal dan menghindari masalah zona waktu
+                const dateDisplay = new Date(dateKey + 'T00:00:00').toLocaleDateString('id-ID', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                // A. Buat Header Tanggal
+                const header = document.createElement('h3');
+                header.className = 'text-xl font-bold text-gray-700 mt-6 mb-3 border-b-2 border-indigo-500 pb-1 sm:text-2xl';
+                header.textContent = dateDisplay;
+                scheduleList.appendChild(header);
+
+                // B. Render Jadwal di bawah Header Tanggal ini
+                groupedSchedules[dateKey].forEach(item => {
+                    const scheduleItem = document.createElement('div');
+                    scheduleItem.className = 'flex items-start justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition duration-200 ease-in-out mt-3';
+                    
+                    // Format tanggal untuk detail item (hanya tanggal pendek)
+                    const itemDateDisplay = new Date(`${item.date}T${item.time}`).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'numeric', year: 'numeric'
+                    });
+
+                    scheduleItem.innerHTML = `
+                        <div class="flex-grow min-w-0 pr-4"> 
+                            <p class="text-lg font-semibold text-indigo-800 break-words">${item.module_name}</p>
+                            <div class="mt-1 text-sm text-gray-600 space-y-1">
+                                <p><span class="font-medium text-gray-700">Waktu:</span> ${item.time} WIB</p>
+                                <p><span class="font-medium text-gray-700">Lokasi:</span> ${item.location}</p>
+                                <p><span class="font-medium text-gray-700">Kelompok:</span> ${item.group || '-'}</p>
+                                <p><span class="font-medium text-gray-700">Asisten:</span> ${item.assistant || '-'}</p>
+                            </div>
+                        </div>
+                        <button data-id="${item.id}" class="delete-btn flex-shrink-0 ml-2 p-3 text-red-500 hover:bg-red-100 rounded-full transition duration-150 ease-in-out" title="Hapus Jadwal">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    `;
+                    scheduleList.appendChild(scheduleItem);
+                });
+            });
+
+            // Re-attach delete listeners
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', handleDelete);
+            });
+        }
+
+        /**
+         * Menangani pengiriman formulir.
+         */
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!isAuthReady || !userId) {
+                showNotification('Aplikasi belum siap. Tunggu autentikasi selesai.', 'error');
+                return;
+            }
+
+            const moduleName = document.getElementById('module_name').value;
+            const group = document.getElementById('group').value;
+            const assistant = document.getElementById('assistant').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const location = document.getElementById('location').value;
+
+            const newSchedule = {
+                module_name: moduleName, 
+                group: group,           
+                assistant: assistant,   
+                date: date,
+                time: time,
+                location: location,
+                createdAt: new Date().toISOString()
+            };
+
+            const submitButton = document.getElementById('submit-button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Menyimpan...';
+
+            try {
+                // Simpan di path private user
+                const scheduleCollectionPath = `artifacts/${appId}/users/${userId}/practicum_schedule`;
+                await addDoc(collection(db, scheduleCollectionPath), newSchedule);
+                
+                showNotification('Jadwal berhasil ditambahkan!');
+                form.reset(); 
+                document.getElementById('location').value = "Lab Jalan Raya";
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showNotification(`Gagal menambahkan jadwal: ${error.message}`, 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Tambahkan Jadwal';
+            }
+        });
+
+        /**
+         * Menangani penghapusan jadwal.
+         */
+        async function handleDelete(e) {
+            const itemId = e.currentTarget.getAttribute('data-id');
+            if (!itemId) return;
+
+            // Di lingkungan produksi, ini HARUS diganti dengan konfirmasi UI kustom.
+            try {
+                const scheduleCollectionPath = `artifacts/${appId}/users/${userId}/practicum_schedule`;
+                await deleteDoc(doc(db, scheduleCollectionPath, itemId));
+                showNotification('Jadwal berhasil dihapus.', 'success');
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                showNotification(`Gagal menghapus jadwal: ${error.message}`, 'error');
+            }
+        }
+        
+        // --- Alur Utama Aplikasi ---
+        // 1. Dengarkan perubahan status autentikasi
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Berhasil login
+                userId = user.uid;
+                isAuthReady = true;
+                setupRealtimeListener(); 
+            } else if (isAuthReady === false) { 
+                // Percobaan pertama gagal, coba autentikasi (signInAnonymously)
+                authenticateUser(); 
+            } else {
+                // User null setelah percobaan autentikasi
+                userStatusElement.textContent = 'Status ID Pengguna: ❌ GAGAL Terhubung. Cek Langkah 1 & 2 di Firebase Console.';
+                loadingMessage.textContent = '❌ Gagal memuat: Autentikasi Gagal. Pastikan Konfigurasi & Autentikasi Anonim sudah benar.';
+                loadingMessage.classList.remove('hidden');
+                isAuthReady = true;
+                showNotification('Autentikasi Gagal. Cek Console untuk Error Firebase.', 'error');
+            }
+        });
+
+        // 2. Jalankan autentikasi awal
+        authenticateUser();
+    </script>
+</body>
+</html>   
+</body>
+</html>
